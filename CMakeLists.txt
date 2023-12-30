@@ -24,7 +24,7 @@ endif()
 
 # create the main executable
 ## add additional .cpp files if needed
-add_executable(main main.cpp)
+add_executable(main main.cpp  helpers.cpp BFStree.cpp MyGraph.cpp)
 # link MiniSAT libraries
 target_link_libraries(main minisat-lib-static)
 
