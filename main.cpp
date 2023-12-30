@@ -13,7 +13,7 @@ int main(int argc, char **argv)
         line_parser::analyze_command(command, line, graph);
         if (graph.edges.size() > 0)
             {
-                polytime_reduction::reduce_polytime(graph);
+                graph.getVertexCover();
                 graph.resetEverything();
             }
         
