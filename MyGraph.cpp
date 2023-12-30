@@ -23,6 +23,11 @@ int MyGraph::getSize()
     return this->num_vertices;
 }
 
+void MyGraph::setSize(int num_vertices)
+{
+    this->num_vertices = num_vertices;
+}
+
 void MyGraph::setEdges(std::map<int, std::pair<int,int>> edges)
 {
     resetEverything();
@@ -263,7 +268,7 @@ void MyGraph::getVertexCover()
 {
     std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
     int edges_vertices_num = this->getSize();
-    for (int k = 1; k < edges_vertices_num; k++)
+    for (int k = 1; k <= edges_vertices_num; k++)
         {
             std::vector<std::vector<Minisat::Lit>> literals(edges_vertices_num, std::vector<Minisat::Lit>(k));
             for (int i = 0; i < edges_vertices_num; i++)
