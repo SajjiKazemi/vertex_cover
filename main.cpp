@@ -14,6 +14,7 @@ int main(int argc, char **argv)
         if (graph.edges.size() > 0)
             {
                 graph.getVertexCover();
+                graph.printVertexCover();
                 graph.resetEverything();
             }
         
