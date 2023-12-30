@@ -144,26 +144,23 @@ namespace line_parser{
 
 namespace polytime_reduction
 {   
-    void apply_first_cond(Minisat::Lit** literals, size_t rows_num, size_t cols_num, 
-                            MyGraph &graph, std::unique_ptr<Minisat::Solver> &solver)
+    void apply_first_cond(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                            MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
     {
         for (int i=0; i<cols_num; i++)
         {
+            Minisat::vec<Minisat::Lit> first_condition_clauses;
             for (int j=0; j<rows_num; j++)
             {
-                for (int k=0; k<rows_num; k++)
-                {
-                    if (k != j)
-                    {
-                        solver->addClause(literals[j][i], literals[k][i]);
-                    }
-                }
+                first_condition_clauses.push(literals[j][i]);
             }
+            solver->addClause(first_condition_clauses);
+            //first_condition_clauses.clear();
         }
     }
 
-    void apply_second_cond(Minisat::Lit** literals, size_t rows_num, size_t cols_num, 
-                            MyGraph &graph, std::unique_ptr<Minisat::Solver> &solver)
+    void apply_second_cond(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
     {
         for (int m=0; m<rows_num; m++)
         {
@@ -177,8 +174,8 @@ namespace polytime_reduction
         }
     }
 
-    void apply_third_cond(Minisat::Lit** literals, size_t rows_num, size_t cols_num, 
-                            MyGraph &graph, std::unique_ptr<Minisat::Solver> &solver)
+    void apply_third_cond(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
     {
         for (int m=0; m<cols_num; m++)
         {
@@ -186,68 +183,40 @@ namespace polytime_reduction
             {
                 for (int p=0; p<q; p++)
                 {
-                    solver->addClause(~literals[p][m], ~literals[q][m]);
+                    solver->addClause(~literals[p][m], ~literals[q][m]);   
                 }
             }
         }
     }
 
-    void apply_fourth_cond(Minisat::Lit** literals, size_t rows_num, size_t cols_num, 
-                            MyGraph &graph, std::unique_ptr<Minisat::Solver> &solver)
+    void apply_fourth_cond(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
     {
         for (const auto& x : graph.edges)
         {
+            Minisat::vec<Minisat::Lit> fourth_condition_clauses;
             int i = x.second.first;
             int j = x.second.second;
             for (int k=0; k<cols_num; k++)
             {
-                for (int l=0; l<rows_num; l++)
-                {
-                    if (k != l)
-                    {
-                        solver->addClause(literals[i][k], literals[i][l]);
-                    }
-                }
+                fourth_condition_clauses.push(literals[i-1][k]);
+                fourth_condition_clauses.push(literals[j-1][k]);
             }
-
-            for (int k=0; k<cols_num; k++)
-            {
-                for (int l=0; l<cols_num; l++)
-                {
-                    if (k != l)
-                    {
-                        solver->addClause(literals[j][k], literals[j][l]);
-                    }
-                }
-            }
-
-            for (int k=0; k<cols_num; k++)
-            {
-                for (int l=0; l<cols_num; l++)
-                {
-                    if (k != l)
-                    {
-                        solver->addClause(literals[i][k], literals[j][l]);
-                    }
-                }
-            }
+            solver->addClause(fourth_condition_clauses);
+            //fourth_condition_clauses.clear();
         }
     }
             
 
     void reduce_polytime(MyGraph &graph)
     {
-        std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
+            std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
 
             std::vector<int> edges_vertices = get_edges_vertices(graph);
             int n = edges_vertices.size();
             for (int k = 1; k < n; k++)
                 {
-                    Minisat::Lit** literals = new Minisat::Lit*[n];
-                    for (int i = 0; i < n; i++)
-                    {
-                        literals[i] = new Minisat::Lit[k];
-                    }
+                    std::vector<std::vector<Minisat::Lit>> literals(n, std::vector<Minisat::Lit>(k));
                     for (int i = 0; i < n; i++)
                     {
                         for (int j = 0; j < k; j++)
@@ -255,9 +224,8 @@ namespace polytime_reduction
                             literals[i][j] = Minisat::mkLit(solver->newVar());
                         }
                     }
-
-                    size_t rows_num = sizeof(literals) / sizeof(literals[0]);
-                    size_t cols_num = sizeof(literals[0]) / sizeof(literals[0][0]);
+                    int rows_num = literals.size();
+                    int cols_num = literals[0].size();
                     apply_first_cond(literals, rows_num, cols_num, graph, solver);
                     apply_second_cond(literals, rows_num, cols_num, graph, solver);
                     apply_third_cond(literals, rows_num, cols_num, graph, solver);
@@ -270,7 +238,7 @@ namespace polytime_reduction
                             {
                                 for (int j = 0; j < k; j++)
                                 {
-                                    if (Minisat::toInt(solver->modelValue(literals[i][j])) == 1)
+                                    if (Minisat::toInt(solver->modelValue(literals[i][j])) == 0)
                                     {
                                         vertex_cover.push_back(edges_vertices[i]);
                                     }
@@ -278,13 +246,15 @@ namespace polytime_reduction
                             }
                             for (std::vector<int>::size_type i = 0; i < vertex_cover.size(); i++)
                             {
-                                if (i < vertex_cover.size() - 1)
+                                if (i == vertex_cover.size() - 1)
                                 {
-                                    std::cout << i+1 << std::endl;
+                                    std::cout << vertex_cover[i] << std::endl;
+                                    res = false;
+                                    break;
                                 }
                                 else
                                 {
-                                    std::cout << i+1 << " ";
+                                    std::cout << vertex_cover[i] << " ";
                                 }
                             }
                             return;
