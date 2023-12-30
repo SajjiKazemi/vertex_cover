@@ -13,6 +13,8 @@ endif()
 
 # enable c++11 support
 set (CMAKE_CXX_FLAGS "-std=c++11 -Wall ${CMAKE_CXX_FLAGS}")
+set (CMAKE_BUILD_TYPE Debug)
+
 
 # expose minisat header files
 include_directories(${CMAKE_SOURCE_DIR}/minisat)
@@ -24,7 +26,7 @@ endif()
 
 # create the main executable
 ## add additional .cpp files if needed
-add_executable(main main.cpp  helpers.cpp BFStree.cpp MyGraph.cpp)
+add_executable(main main.cpp helpers.cpp BFStree.cpp MyGraph.cpp)
 # link MiniSAT libraries
 target_link_libraries(main minisat-lib-static)
 
