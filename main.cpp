@@ -10,7 +10,11 @@ int main(int argc, char **argv)
         std::string line;
         std::getline(std::cin, line);
         std::string command = line_parser::get_command(line, graph);
-        line_parser::analyze_command(command, line, graph);    
+        line_parser::analyze_command(command, line, graph);
+        if (graph.edges.size() > 0)
+            {
+                polytime_reduction::reduce_polytime(graph);
+            }
     }
     
  return 0;
