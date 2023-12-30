@@ -14,7 +14,9 @@ int main(int argc, char **argv)
         if (graph.edges.size() > 0)
             {
                 polytime_reduction::reduce_polytime(graph);
+                graph.resetEverything();
             }
+        
     }
     
  return 0;
