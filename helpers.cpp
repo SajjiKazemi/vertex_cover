@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 #include <regex>
+// defined std::unique_ptr
+#include <memory>
+// defines Var and Lit
+#include "minisat/core/SolverTypes.h"
+// defines Solver
+#include "minisat/core/Solver.h"
 
 namespace line_parser{
 
@@ -132,4 +138,34 @@ namespace line_parser{
     }
     }
 
+}
+
+
+namespace polytime_reduction
+{
+
+    void reduce_polytime(MyGraph &graph)
+        {
+            std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
+
+
+            int n = graph.edges.size();
+            std::vector<int> edges_vertices = get_edges_vertices(graph);
+
+
+        }
+
+    std::vector<int> get_edges_vertices(MyGraph &graph)
+        {
+            std::vector<int> edges_vertices;
+            for (auto const& x : graph.edges)
+            {
+                edges_vertices.push_back(x.second.first);
+                edges_vertices.push_back(x.second.second);
+            }
+            std::sort(edges_vertices.begin(), edges_vertices.end());
+            auto it = std::unique(edges_vertices.begin(), edges_vertices.end());
+            edges_vertices.erase(it, edges_vertices.end());
+            return edges_vertices;
+        }
 }
