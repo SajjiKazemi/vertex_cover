@@ -16,8 +16,8 @@ int main(int argc, char **argv)
                 graph.getVertexCover();
                 graph.printVertexCover();
                 graph.resetEverything();
+                graph.setSize(0);
             }
-        
     }
     
  return 0;
