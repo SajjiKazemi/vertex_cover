@@ -213,9 +213,9 @@ void MyGraph::vertexCoverFirstCondition(std::vector<std::vector<Minisat::Lit>> l
                         MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
 {
     Minisat::vec<Minisat::Lit> first_condition_clauses;
-    for (int i=0; i<cols_num; i++)
+    for (size_t i=0; i<cols_num; i++)
     {
-        for (int j=0; j<rows_num; j++)
+        for (size_t j=0; j<rows_num; j++)
         {
             first_condition_clauses.push(literals[j][i]);
         }
@@ -227,11 +227,11 @@ void MyGraph::vertexCoverFirstCondition(std::vector<std::vector<Minisat::Lit>> l
 void MyGraph::vertexCoverSecondCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
                         MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
 {
-    for (int m=0; m<rows_num; m++)
+    for (size_t m=0; m<rows_num; m++)
     {
-        for (int q=0; q<cols_num; q++)
+        for (size_t q=0; q<cols_num; q++)
         {
-            for (int p=0; p<q; p++)
+            for (size_t p=0; p<q; p++)
             {
                 solver->addClause(~literals[m][p], ~literals[m][q]);
             }
@@ -242,11 +242,11 @@ void MyGraph::vertexCoverSecondCondition(std::vector<std::vector<Minisat::Lit>> 
 void MyGraph::vertexCoverThirdCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
                         MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
 {
-    for (int m=0; m<cols_num; m++)
+    for (size_t m=0; m<cols_num; m++)
     {
-        for (int q=0; q<rows_num; q++)
+        for (size_t q=0; q<rows_num; q++)
         {
-            for (int p=0; p<q; p++)
+            for (size_t p=0; p<q; p++)
             {
                 solver->addClause(~literals[p][m], ~literals[q][m]);   
             }
@@ -262,7 +262,7 @@ void MyGraph::vertexCoverFourthCondition(std::vector<std::vector<Minisat::Lit>> 
     {
         int i = x.second.first;
         int j = x.second.second;
-        for (int k=0; k<cols_num; k++)
+        for (size_t k=0; k<cols_num; k++)
         {
             fourth_condition_clauses.push(literals[i-1][k]);
             fourth_condition_clauses.push(literals[j-1][k]);
