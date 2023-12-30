@@ -29,6 +29,6 @@ add_executable(main main.cpp  helpers.cpp BFStree.cpp MyGraph.cpp)
 target_link_libraries(main minisat-lib-static)
 
 # create the executable for tests
-add_executable(test test.cpp)
+add_executable(test test.cpp helpers.cpp BFStree.cpp MyGraph.cpp)
 # link MiniSAT libraries
 target_link_libraries(test minisat-lib-static)
