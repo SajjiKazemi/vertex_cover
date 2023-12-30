@@ -1,11 +1,8 @@
 #include "MyGraph.h"
 #include <vector>
 #include <algorithm>
-// defined std::unique_ptr
 #include <memory>
-// defines Var and Lit
 #include "minisat/core/SolverTypes.h"
-// defines Solver
 #include "minisat/core/Solver.h"
 #include "BFStree.h"
 
@@ -191,6 +188,7 @@ void MyGraph::resetEverything()
     this->visited_nodes.clear();
     this->shortest_path.clear();
     this->triedToSetEdges = false;
+    this->vertex_cover.clear();
 }
 
 void MyGraph::setTriedToSetEdges()
@@ -211,10 +209,72 @@ std::vector<int> MyGraph::getEdgesVertices()
     return edges_vertices;
 }
 
-std::vector<int> MyGraph::getVertexCover()
+void MyGraph::vertexCoverFirstCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
+{
+    Minisat::vec<Minisat::Lit> first_condition_clauses;
+    for (int i=0; i<cols_num; i++)
+    {
+        for (int j=0; j<rows_num; j++)
+        {
+            first_condition_clauses.push(literals[j][i]);
+        }
+        solver->addClause(first_condition_clauses);
+        first_condition_clauses.clear();
+    }
+}
+
+void MyGraph::vertexCoverSecondCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
+{
+    for (int m=0; m<rows_num; m++)
+    {
+        for (int q=0; q<cols_num; q++)
+        {
+            for (int p=0; p<q; p++)
+            {
+                solver->addClause(~literals[m][p], ~literals[m][q]);
+            }
+        }
+    }
+}
+
+void MyGraph::vertexCoverThirdCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
+{
+    for (int m=0; m<cols_num; m++)
+    {
+        for (int q=0; q<rows_num; q++)
+        {
+            for (int p=0; p<q; p++)
+            {
+                solver->addClause(~literals[p][m], ~literals[q][m]);   
+            }
+        }
+    }
+}
+
+void MyGraph::vertexCoverFourthCondition(std::vector<std::vector<Minisat::Lit>> literals, size_t rows_num, size_t cols_num, 
+                        MyGraph &graph, std::unique_ptr<Minisat::Solver>& solver)
+{
+    Minisat::vec<Minisat::Lit> fourth_condition_clauses;
+    for (const auto& x : graph.edges)
+    {
+        int i = x.second.first;
+        int j = x.second.second;
+        for (int k=0; k<cols_num; k++)
+        {
+            fourth_condition_clauses.push(literals[i-1][k]);
+            fourth_condition_clauses.push(literals[j-1][k]);
+        }
+        solver->addClause(fourth_condition_clauses);
+        fourth_condition_clauses.clear();
+    }
+}
+
+void MyGraph::getVertexCover()
 {
     std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
-    std::vector<int> vertex_cover;
     std::vector<int> edges_vertices = getEdgesVertices();
     int edges_vertices_num = edges_vertices.size();
 
@@ -231,80 +291,23 @@ std::vector<int> MyGraph::getVertexCover()
             int rows_num = literals.size();
             int cols_num = literals[0].size();
 
-            for (int i=0; i<cols_num; i++)
-            {
-                Minisat::vec<Minisat::Lit> first_condition_clauses;
-                for (int j=0; j<rows_num; j++)
-                {
-                    first_condition_clauses.push(literals[j][i]);
-                }
-                solver->addClause(first_condition_clauses);
-                //first_condition_clauses.clear();
-            }
-                          
-            for (int m=0; m<rows_num; m++)
-            {
-                for (int q=0; q<cols_num; q++)
-                {
-                    for (int p=0; p<q; p++)
-                    {
-                        solver->addClause(~literals[m][p], ~literals[m][q]);
-                    }
-                }
-            }
-            
-            for (int m=0; m<cols_num; m++)
-            {
-                for (int q=0; q<rows_num; q++)
-                {
-                    for (int p=0; p<q; p++)
-                    {
-                        solver->addClause(~literals[p][m], ~literals[q][m]);   
-                    }
-                }
-            }
-            for (const auto& x : this->edges)
-            {
-                Minisat::vec<Minisat::Lit> fourth_condition_clauses;
-                int i = x.second.first;
-                int j = x.second.second;
-                for (int k=0; k<cols_num; k++)
-                {
-                    fourth_condition_clauses.push(literals[i-1][k]);
-                    fourth_condition_clauses.push(literals[j-1][k]);
-                }
-                solver->addClause(fourth_condition_clauses);
-                //fourth_condition_clauses.clear();
-            }
+            vertexCoverFirstCondition(literals, rows_num, cols_num, *this, solver);
+            vertexCoverSecondCondition(literals, rows_num, cols_num, *this, solver);
+            vertexCoverThirdCondition(literals, rows_num, cols_num, *this, solver);
+            vertexCoverFourthCondition(literals, rows_num, cols_num, *this, solver);
             
             bool res = solver->solve();
             if (res == true)
                 {
-                    std::vector<int> vertex_cover;
                     for (int i = 0; i < edges_vertices_num; i++)
                     {
                         for (int j = 0; j < k; j++)
                         {
                             if (Minisat::toInt(solver->modelValue(literals[i][j])) == 0)
-                            {
-                                vertex_cover.push_back(edges_vertices[i]);
-                            }
+                                this->vertex_cover.push_back(edges_vertices[i]);
                         }
                     }
-                    for (std::vector<int>::size_type i = 0; i < vertex_cover.size(); i++)
-                    {
-                        if (i == vertex_cover.size() - 1)
-                        {
-                            std::cout << vertex_cover[i] << std::endl;
-                            res = false;
-                            break;
-                        }
-                        else
-                        {
-                            std::cout << vertex_cover[i] << " ";
-                        }
-                    }
-                    return vertex_cover;
+                    return;
                 }
             else
                 {
@@ -312,4 +315,20 @@ std::vector<int> MyGraph::getVertexCover()
                 }
         }
 
+}
+
+void MyGraph::printVertexCover()
+{
+    for (std::vector<int>::size_type i = 0; i < this->vertex_cover.size(); i++)
+    {
+        if (i == this->vertex_cover.size() - 1)
+        {
+            std::cout << this->vertex_cover[i] << std::endl;
+            break;
+        }
+        else
+        {
+            std::cout << this->vertex_cover[i] << " ";
+        }
+    }
 }
