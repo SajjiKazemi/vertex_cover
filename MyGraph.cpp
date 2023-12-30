@@ -1,6 +1,12 @@
 #include "MyGraph.h"
 #include <vector>
 #include <algorithm>
+// defined std::unique_ptr
+#include <memory>
+// defines Var and Lit
+#include "minisat/core/SolverTypes.h"
+// defines Solver
+#include "minisat/core/Solver.h"
 #include "BFStree.h"
 
 // Constructor definition
@@ -190,4 +196,120 @@ void MyGraph::resetEverything()
 void MyGraph::setTriedToSetEdges()
 {
     this->triedToSetEdges = true;
+}
+
+std::vector<int> MyGraph::getEdgesVertices()
+{
+    std::vector<int> edges_vertices;
+    for (auto const& x : this->edges)
+    {
+        edges_vertices.push_back(x.second.first);
+        edges_vertices.push_back(x.second.second);
+    }
+    std::sort(edges_vertices.begin(), edges_vertices.end());
+    edges_vertices.erase(std::unique(edges_vertices.begin(), edges_vertices.end()), edges_vertices.end());
+    return edges_vertices;
+}
+
+std::vector<int> MyGraph::getVertexCover()
+{
+    std::unique_ptr<Minisat::Solver> solver(new Minisat::Solver());
+    std::vector<int> vertex_cover;
+    std::vector<int> edges_vertices = getEdgesVertices();
+    int edges_vertices_num = edges_vertices.size();
+
+    for (int k = 1; k < edges_vertices_num; k++)
+        {
+            std::vector<std::vector<Minisat::Lit>> literals(edges_vertices_num, std::vector<Minisat::Lit>(k));
+            for (int i = 0; i < edges_vertices_num; i++)
+            {
+                for (int j = 0; j < k; j++)
+                {
+                    literals[i][j] = Minisat::mkLit(solver->newVar());
+                }
+            }
+            int rows_num = literals.size();
+            int cols_num = literals[0].size();
+
+            for (int i=0; i<cols_num; i++)
+            {
+                Minisat::vec<Minisat::Lit> first_condition_clauses;
+                for (int j=0; j<rows_num; j++)
+                {
+                    first_condition_clauses.push(literals[j][i]);
+                }
+                solver->addClause(first_condition_clauses);
+                //first_condition_clauses.clear();
+            }
+                          
+            for (int m=0; m<rows_num; m++)
+            {
+                for (int q=0; q<cols_num; q++)
+                {
+                    for (int p=0; p<q; p++)
+                    {
+                        solver->addClause(~literals[m][p], ~literals[m][q]);
+                    }
+                }
+            }
+            
+            for (int m=0; m<cols_num; m++)
+            {
+                for (int q=0; q<rows_num; q++)
+                {
+                    for (int p=0; p<q; p++)
+                    {
+                        solver->addClause(~literals[p][m], ~literals[q][m]);   
+                    }
+                }
+            }
+            for (const auto& x : this->edges)
+            {
+                Minisat::vec<Minisat::Lit> fourth_condition_clauses;
+                int i = x.second.first;
+                int j = x.second.second;
+                for (int k=0; k<cols_num; k++)
+                {
+                    fourth_condition_clauses.push(literals[i-1][k]);
+                    fourth_condition_clauses.push(literals[j-1][k]);
+                }
+                solver->addClause(fourth_condition_clauses);
+                //fourth_condition_clauses.clear();
+            }
+            
+            bool res = solver->solve();
+            if (res == true)
+                {
+                    std::vector<int> vertex_cover;
+                    for (int i = 0; i < edges_vertices_num; i++)
+                    {
+                        for (int j = 0; j < k; j++)
+                        {
+                            if (Minisat::toInt(solver->modelValue(literals[i][j])) == 0)
+                            {
+                                vertex_cover.push_back(edges_vertices[i]);
+                            }
+                        }
+                    }
+                    for (std::vector<int>::size_type i = 0; i < vertex_cover.size(); i++)
+                    {
+                        if (i == vertex_cover.size() - 1)
+                        {
+                            std::cout << vertex_cover[i] << std::endl;
+                            res = false;
+                            break;
+                        }
+                        else
+                        {
+                            std::cout << vertex_cover[i] << " ";
+                        }
+                    }
+                    return vertex_cover;
+                }
+            else
+                {
+                    solver.reset(new Minisat::Solver());
+                }
+        }
+
 }

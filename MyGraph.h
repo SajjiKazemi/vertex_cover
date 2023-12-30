@@ -34,6 +34,8 @@ public:
     void resetEverything();
     void setTriedToSetEdges();
     bool checkNodeInEdges(int node);
+    std::vector<int> getEdgesVertices();
+    std::vector<int> getVertexCover();
 };
 
 
